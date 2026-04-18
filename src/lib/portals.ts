@@ -15,16 +15,48 @@ export type PortalSeed = {
 };
 
 export const SEED_PORTALS: PortalSeed[] = [
+  // --- Fintech / trading / crypto (most relevant for forex/trading-adjacent roles) ---
+  // These companies use Greenhouse, Ashby, or Lever — CareerOps can auto-scan them.
+  // For the broader list of 100+ FX brokers, prop firms, and trading-education
+  // companies (most of which need manual checking), see BROKERS.md.
+
+  // Crypto / digital-asset trading platforms (a lot of forex-skill overlap)
+  { company: "Coinbase", kind: "greenhouse", slug: "coinbase" },
+  { company: "Kraken Digital", kind: "greenhouse", slug: "krakendigital" },
+  { company: "Gemini", kind: "greenhouse", slug: "gemini" },
+  { company: "Circle", kind: "greenhouse", slug: "circle" },
+  { company: "Uniswap Labs", kind: "greenhouse", slug: "uniswaplabs" },
+  { company: "ConsenSys", kind: "greenhouse", slug: "consensys" },
+  { company: "Anchorage Digital", kind: "greenhouse", slug: "anchoragedigital" },
+  { company: "Polymarket", kind: "ashby", slug: "polymarket" },
+  { company: "dYdX", kind: "ashby", slug: "dydx" },
+
+  // Retail brokerages and trading apps
+  { company: "Robinhood", kind: "greenhouse", slug: "robinhood" },
+  { company: "Interactive Brokers", kind: "greenhouse", slug: "interactivebrokers" },
+  { company: "Public.com", kind: "greenhouse", slug: "public" },
+  { company: "Webull", kind: "greenhouse", slug: "webull" },
+
+  // Payments / fintech with frequent trading & analytics openings
+  { company: "Stripe", kind: "greenhouse", slug: "stripe" },
+  { company: "Plaid", kind: "greenhouse", slug: "plaid" },
+  { company: "Wise", kind: "greenhouse", slug: "wise" },
+  { company: "Brex", kind: "greenhouse", slug: "brex" },
+  { company: "Ramp", kind: "ashby", slug: "ramp" },
+  { company: "Mercury", kind: "ashby", slug: "mercury" },
+  { company: "Chime", kind: "greenhouse", slug: "chime" },
+  { company: "Nubank", kind: "greenhouse", slug: "nubank" },
+
+  // AI / tech — kept from the original seed because many post analyst & data roles
   { company: "Anthropic", kind: "greenhouse", slug: "anthropic" },
   { company: "OpenAI", kind: "greenhouse", slug: "openai" },
   { company: "Mistral", kind: "ashby", slug: "mistral" },
-  { company: "Retool", kind: "ashby", slug: "retool" },
-  { company: "Linear", kind: "ashby", slug: "linear" },
-  { company: "Vercel", kind: "greenhouse", slug: "vercel" },
-  { company: "Replicate", kind: "ashby", slug: "replicate" },
   { company: "Hugging Face", kind: "lever", slug: "huggingface" },
-  { company: "Stripe", kind: "greenhouse", slug: "stripe" },
   { company: "Notion", kind: "greenhouse", slug: "notion" },
+  { company: "Vercel", kind: "greenhouse", slug: "vercel" },
+  { company: "Linear", kind: "ashby", slug: "linear" },
+  { company: "Retool", kind: "ashby", slug: "retool" },
+  { company: "Replicate", kind: "ashby", slug: "replicate" },
 ];
 
 export type NormalizedJob = {
