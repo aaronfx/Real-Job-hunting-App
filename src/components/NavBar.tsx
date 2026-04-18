@@ -9,6 +9,7 @@ export function NavBar() {
         </Link>
         <div className="flex items-center gap-4 text-sm">
           <Link href="/dashboard" className="hover:text-accent">Dashboard</Link>
+          <Link href="/jobs" className="hover:text-accent">Jobs</Link>
           <Link href="/evaluations" className="hover:text-accent">Evaluations</Link>
           <Link href="/evaluations/new" className="hover:text-accent">New</Link>
           <Link href="/scan" className="hover:text-accent">Scan</Link>

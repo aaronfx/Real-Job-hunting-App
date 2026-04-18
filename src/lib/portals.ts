@@ -20,27 +20,18 @@ export const SEED_PORTALS: PortalSeed[] = [
   // For the broader list of 100+ FX brokers, prop firms, and trading-education
   // companies (most of which need manual checking), see BROKERS.md.
 
-  // Crypto / digital-asset trading platforms (a lot of forex-skill overlap)
+  // Crypto / digital-asset trading platforms (verified working)
   { company: "Coinbase", kind: "greenhouse", slug: "coinbase" },
-  { company: "Kraken Digital", kind: "greenhouse", slug: "krakendigital" },
   { company: "Gemini", kind: "greenhouse", slug: "gemini" },
-  { company: "Circle", kind: "greenhouse", slug: "circle" },
-  { company: "Uniswap Labs", kind: "greenhouse", slug: "uniswaplabs" },
   { company: "ConsenSys", kind: "greenhouse", slug: "consensys" },
-  { company: "Anchorage Digital", kind: "greenhouse", slug: "anchoragedigital" },
   { company: "Polymarket", kind: "ashby", slug: "polymarket" },
-  { company: "dYdX", kind: "ashby", slug: "dydx" },
 
-  // Retail brokerages and trading apps
+  // Retail brokerages and trading apps (verified working)
   { company: "Robinhood", kind: "greenhouse", slug: "robinhood" },
-  { company: "Interactive Brokers", kind: "greenhouse", slug: "interactivebrokers" },
   { company: "Public.com", kind: "greenhouse", slug: "public" },
-  { company: "Webull", kind: "greenhouse", slug: "webull" },
 
-  // Payments / fintech with frequent trading & analytics openings
+  // Payments / fintech with frequent analytics / content openings (verified working)
   { company: "Stripe", kind: "greenhouse", slug: "stripe" },
-  { company: "Plaid", kind: "greenhouse", slug: "plaid" },
-  { company: "Wise", kind: "greenhouse", slug: "wise" },
   { company: "Brex", kind: "greenhouse", slug: "brex" },
   { company: "Ramp", kind: "ashby", slug: "ramp" },
   { company: "Mercury", kind: "ashby", slug: "mercury" },
