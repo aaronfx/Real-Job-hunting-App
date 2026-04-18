@@ -1,0 +1,21 @@
+name: Daily portal scan
+
+on:
+  schedule:
+    # Runs every day at 07:30 UTC. Adjust as desired.
+    - cron: "30 7 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger scan endpoint
+        env:
+          APP_URL: ${{ secrets.PUBLIC_APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -sS -X POST "${APP_URL}/api/cron/scan" \
+               -H "Authorization: Bearer ${CRON_SECRET}" \
+               -H "Content-Type: application/json" \
+               --fail

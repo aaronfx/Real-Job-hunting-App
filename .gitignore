@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+.next/
+out/
+worker/dist/
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+next-env.d.ts
+
+# Env
+.env
+.env.local
+.env*.local
+
+# Prisma
+prisma/migrations/dev/
+
+# OS / editors
+.DS_Store
+*.log
+.vscode/
+.idea/
+
+# Runtime
+generated-pdfs/
+data/
