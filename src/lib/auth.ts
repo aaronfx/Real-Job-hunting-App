@@ -1,22 +1,8 @@
-import { getIronSession, SessionOptions } from "iron-session";
+import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
-import { env } from "./env";
+import { sessionOptions, type SessionData } from "./session";
 
-export type SessionData = {
-  loggedIn?: boolean;
-};
-
-export function sessionOptions(): SessionOptions {
-  return {
-    cookieName: "careerops_session",
-    password: env.sessionSecret(),
-    cookieOptions: {
-      secure: process.env.NODE_ENV === "production",
-      httpOnly: true,
-      sameSite: "lax",
-    },
-  };
-}
+export { sessionOptions, type SessionData };
 
 export async function getSession() {
   const store = await cookies();

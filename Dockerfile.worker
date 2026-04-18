@@ -1,9 +1,9 @@
-# Dedicated container for the background worker (Playwright + Puppeteer).
-# Use this Dockerfile for the second Railway service.
+# Dedicated container for the background worker.
+# Used by the second Railway service. Ships Chromium for PDF rendering.
 
 FROM node:20-bookworm-slim
 
-# Chromium deps for Puppeteer
+# Chromium runtime deps for Puppeteer
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates fonts-liberation libasound2 libatk-bridge2.0-0 libatk1.0-0 \
     libc6 libcairo2 libcups2 libdbus-1-3 libdrm2 libexpat1 libgbm1 libglib2.0-0 \
@@ -14,15 +14,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY package*.json ./
-COPY worker/package*.json ./worker/ 2>/dev/null || true
-RUN npm ci --omit=dev=false
+# npm ci runs postinstall -> prisma generate, and puppeteer downloads Chromium.
+COPY package.json package-lock.json ./
+RUN npm ci --include=dev
 
 COPY . .
 
-RUN npx prisma generate \
- && npx tsc -p worker/tsconfig.json \
- && node node_modules/puppeteer/install.mjs
-
 ENV NODE_ENV=production
-CMD ["node", "worker/dist/index.js"]
+CMD ["npx", "tsx", "worker/src/index.ts"]
