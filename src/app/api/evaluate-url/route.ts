@@ -11,6 +11,38 @@ import {
 } from "@/lib/claude";
 import { stripHtml } from "@/lib/portals";
 
+// Run on Node runtime (not edge) so we can use Puppeteer for JS-rendered pages.
+export const runtime = "nodejs";
+
+const SHORT_CONTENT_THRESHOLD = 800;
+
+async function fetchWithPuppeteer(url: string): Promise<string> {
+  // Lazy import so cold starts on normal URLs don't pay the Chromium boot cost.
+  const puppeteer = (await import("puppeteer")).default;
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  });
+  try {
+    const page = await browser.newPage();
+    await page.setUserAgent(
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+    );
+    await page.setViewport({ width: 1280, height: 900 });
+    await page.goto(url, { waitUntil: "networkidle2", timeout: 45_000 });
+    // Give JS frameworks a beat to render job content after the network quiets.
+    await new Promise((r) => setTimeout(r, 1500));
+    const text = await page.evaluate(() => {
+      // Prefer <main>, fallback to body.
+      const el = document.querySelector("main") || document.body;
+      return (el as HTMLElement).innerText;
+    });
+    return text;
+  } finally {
+    await browser.close().catch(() => {});
+  }
+}
+
 const Body = z.object({
   url: z.string().url(),
 });
@@ -50,8 +82,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "URL must be a public http(s) address" }, { status: 400 });
   }
 
-  // 1. Fetch the page. Use a realistic user agent; some sites reject defaults.
-  let pageText: string;
+  // 1. Fetch the page. Try plain fetch first; fall back to Puppeteer for
+  // JS-rendered sites (Workday, many React career pages).
+  let pageText = "";
   try {
     const res = await fetch(url, {
       headers: {
@@ -61,23 +94,34 @@ export async function POST(req: Request) {
       },
       redirect: "follow",
     });
-    if (!res.ok) {
+    if (res.ok) {
+      const raw = await res.text();
+      pageText = stripHtml(raw).slice(0, 40_000);
+    }
+  } catch {
+    // Ignore; Puppeteer will try next.
+  }
+
+  if (pageText.length < SHORT_CONTENT_THRESHOLD) {
+    try {
+      const rendered = await fetchWithPuppeteer(url);
+      pageText = rendered.slice(0, 40_000);
+    } catch (err: any) {
       return NextResponse.json(
-        { error: `Could not fetch the page (HTTP ${res.status}). If it requires JS or login, paste the description manually instead.` },
+        {
+          error: `Couldn't render the page (${err?.message ?? "unknown error"}). If it requires login, paste the description manually instead.`,
+        },
         { status: 400 },
       );
     }
-    const raw = await res.text();
-    pageText = stripHtml(raw).slice(0, 40_000);
-    if (pageText.length < 200) {
-      return NextResponse.json(
-        { error: "Page content was too short to extract. Paste manually instead." },
-        { status: 400 },
-      );
-    }
-  } catch (err: any) {
+  }
+
+  if (pageText.length < 200) {
     return NextResponse.json(
-      { error: `Fetch failed: ${err?.message ?? String(err)}` },
+      {
+        error:
+          "Page content was too short after rendering. The site may require login or load data from a private API. Paste manually instead.",
+      },
       { status: 400 },
     );
   }
