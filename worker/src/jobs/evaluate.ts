@@ -7,6 +7,7 @@ import {
   buildTailorUserMessage,
   parseJsonish,
 } from "../../../src/lib/claude";
+import { pdfQueue } from "../../../src/lib/queue";
 
 const prisma = new PrismaClient();
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -120,6 +121,13 @@ export async function evaluateJob(data: { evaluationId: string }) {
       create: { evaluationId: ev.id, status: "not-applied" },
       update: {},
     });
+
+    // Kick off PDF generation so it's ready when the user clicks download.
+    await pdfQueue.add(
+      "pdf",
+      { evaluationId: ev.id },
+      { removeOnComplete: 50, removeOnFail: 50 },
+    );
   } catch (err: any) {
     await prisma.evaluation.update({
       where: { id: ev.id },

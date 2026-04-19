@@ -42,10 +42,11 @@ export async function generatePdf(data: { evaluationId: string }) {
     await browser.close();
   }
 
-  // For a real deploy you'd upload to S3/R2 and store the public URL.
-  // For now we serve the local file path; you can extend with a /api/pdf/[id] route.
+  // Store the absolute filesystem path. The /api/jobs/[id]/pdf route reads
+  // the file and streams its bytes to the browser. (For cloud deploys,
+  // swap this for an S3/R2 upload + public URL.)
   await prisma.evaluation.update({
     where: { id: ev.id },
-    data: { pdfPath: `file://${file}` },
+    data: { pdfPath: file },
   });
 }
