@@ -86,6 +86,8 @@ export default async function ScanPage({
           <option value="greenhouse">Greenhouse</option>
           <option value="ashby">Ashby</option>
           <option value="lever">Lever</option>
+          <option value="workable">Workable</option>
+          <option value="smartrecruiters">SmartRecruiters</option>
         </select>
         <input name="slug" placeholder="board slug" className="rounded border border-neutral-300 px-3 py-2" required />
         <button className="rounded bg-ink px-3 py-2 text-white">Add</button>

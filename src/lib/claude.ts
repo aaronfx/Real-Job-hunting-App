@@ -19,6 +19,45 @@ export function parseJsonish<T = unknown>(text: string): T {
 }
 
 /**
+ * Instructs Claude to extract structured job data from arbitrary page text.
+ * Used by the paste-URL flow to turn any career-page HTML into a Job record.
+ */
+export const JOB_EXTRACTION_SYSTEM = `
+You extract structured job posting data from raw web page content.
+
+You always respond with a SINGLE valid JSON object. No prose outside JSON.
+
+Schema:
+{
+  "title": string,           // role title; keep as-is from the page
+  "company": string,         // hiring company name
+  "location": string | null, // "Remote", "New York", "London, UK", etc.
+  "remote": boolean,         // true if the posting allows remote work
+  "description": string,     // full role description - responsibilities, requirements, benefits. Preserve structure with newlines. Aim for completeness, not brevity.
+  "isJobPosting": boolean    // false if the page is a homepage, 404, login wall, or anything that isn't a single specific job
+}
+
+Rules:
+- If the page isn't a specific job posting, set "isJobPosting" to false and make other fields best-effort.
+- If you're unsure about company or location, use null and continue.
+- Do not invent fields that aren't in the source text.
+`.trim();
+
+export function buildExtractionUserMessage(args: { url: string; text: string }) {
+  // Keep under ~25k chars to stay well within model limits. Trim if longer.
+  const trimmed =
+    args.text.length > 25_000 ? args.text.slice(0, 25_000) + "\n…[truncated]" : args.text;
+  return [
+    `Source URL: ${args.url}`,
+    ``,
+    `Page content:`,
+    trimmed,
+    ``,
+    `Return the JSON now.`,
+  ].join("\n");
+}
+
+/**
  * Ten-dimension scoring rubric. Tweak weights to taste.
  */
 export const RUBRIC = {

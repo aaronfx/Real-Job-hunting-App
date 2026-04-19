@@ -1,16 +1,25 @@
 /**
  * Pre-configured public ATS endpoints. These are official JSON APIs - no scraping.
  *
- * Greenhouse: https://boards-api.greenhouse.io/v1/boards/{slug}/jobs
- * Ashby:      https://api.ashbyhq.com/posting-api/job-board/{slug}
- * Lever:      https://api.lever.co/v0/postings/{slug}?mode=json
+ * Greenhouse:      https://boards-api.greenhouse.io/v1/boards/{slug}/jobs
+ * Ashby:           https://api.ashbyhq.com/posting-api/job-board/{slug}
+ * Lever:           https://api.lever.co/v0/postings/{slug}?mode=json
+ * Workable:        https://apply.workable.com/api/v3/accounts/{slug}/jobs
+ * SmartRecruiters: https://api.smartrecruiters.com/v1/companies/{slug}/postings
  *
  * The user can add/remove via the /scan page in the UI.
  */
 
+export type PortalKind =
+  | "greenhouse"
+  | "ashby"
+  | "lever"
+  | "workable"
+  | "smartrecruiters";
+
 export type PortalSeed = {
   company: string;
-  kind: "greenhouse" | "ashby" | "lever";
+  kind: PortalKind;
   slug: string;
 };
 
@@ -107,10 +116,86 @@ export async function fetchLever(slug: string): Promise<NormalizedJob[]> {
   }));
 }
 
+export async function fetchWorkable(slug: string): Promise<NormalizedJob[]> {
+  const res = await fetch(
+    `https://apply.workable.com/api/v3/accounts/${encodeURIComponent(slug)}/jobs?limit=200`,
+    { headers: { Accept: "application/json" } },
+  );
+  if (!res.ok) throw new Error(`Workable ${slug}: ${res.status}`);
+  const data = (await res.json()) as { results?: any[] };
+  return (data.results ?? []).map((j) => {
+    const loc = [j.city, j.region, j.country].filter(Boolean).join(", ");
+    return {
+      externalId: String(j.shortcode ?? j.id),
+      url: j.url ?? j.application_url ?? "",
+      title: j.title ?? "",
+      location: loc,
+      remote: !!(j.telecommuting || j.remote || /remote/i.test(loc)),
+      description: [j.description, j.requirements, j.benefits]
+        .filter(Boolean)
+        .join("\n\n"),
+    };
+  });
+}
+
+export async function fetchSmartRecruiters(slug: string): Promise<NormalizedJob[]> {
+  // List endpoint — paginated. Grab first 100, which is plenty for most companies.
+  const listRes = await fetch(
+    `https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(slug)}/postings?limit=100`,
+  );
+  if (!listRes.ok) throw new Error(`SmartRecruiters ${slug}: ${listRes.status}`);
+  const list = (await listRes.json()) as { content?: any[] };
+  const postings = list.content ?? [];
+
+  // Each posting's description lives on the per-item endpoint. Fetch in
+  // parallel but cap concurrency to be polite.
+  const results: NormalizedJob[] = [];
+  const limit = 5;
+  for (let i = 0; i < postings.length; i += limit) {
+    const slice = postings.slice(i, i + limit);
+    const detailed = await Promise.all(
+      slice.map(async (p) => {
+        try {
+          const r = await fetch(
+            `https://api.smartrecruiters.com/v1/companies/${encodeURIComponent(slug)}/postings/${encodeURIComponent(p.id)}`,
+          );
+          if (!r.ok) return null;
+          const d = (await r.json()) as any;
+          const sections = d.jobAd?.sections ?? {};
+          const description = Object.values(sections)
+            .map((s: any) => `${s?.title ?? ""}\n${s?.text ?? ""}`)
+            .join("\n\n");
+          const loc = [
+            d.location?.city,
+            d.location?.region,
+            d.location?.country,
+          ]
+            .filter(Boolean)
+            .join(", ");
+          return {
+            externalId: String(d.id),
+            url: d.ref ?? `https://jobs.smartrecruiters.com/${slug}/${d.id}`,
+            title: d.name ?? "",
+            location: loc,
+            remote: !!d.location?.remote || /remote/i.test(loc),
+            description,
+          } as NormalizedJob;
+        } catch {
+          return null;
+        }
+      }),
+    );
+    for (const d of detailed) if (d) results.push(d);
+  }
+  return results;
+}
+
 export async function fetchPortal(kind: string, slug: string): Promise<NormalizedJob[]> {
   if (kind === "greenhouse") return fetchGreenhouse(slug);
   if (kind === "ashby") return fetchAshby(slug);
   if (kind === "lever") return fetchLever(slug);
+  if (kind === "workable") return fetchWorkable(slug);
+  if (kind === "smartrecruiters") return fetchSmartRecruiters(slug);
   throw new Error(`Unknown portal kind: ${kind}`);
 }
 
