@@ -15,7 +15,8 @@ export type PortalKind =
   | "ashby"
   | "lever"
   | "workable"
-  | "smartrecruiters";
+  | "smartrecruiters"
+  | "remoteok";
 
 export type PortalSeed = {
   company: string;
@@ -47,7 +48,7 @@ export const SEED_PORTALS: PortalSeed[] = [
   { company: "Chime", kind: "greenhouse", slug: "chime" },
   { company: "Nubank", kind: "greenhouse", slug: "nubank" },
 
-  // AI / tech — kept from the original seed because many post analyst & data roles
+  // AI / tech
   { company: "Anthropic", kind: "greenhouse", slug: "anthropic" },
   { company: "OpenAI", kind: "greenhouse", slug: "openai" },
   { company: "Mistral", kind: "ashby", slug: "mistral" },
@@ -57,6 +58,15 @@ export const SEED_PORTALS: PortalSeed[] = [
   { company: "Linear", kind: "ashby", slug: "linear" },
   { company: "Retool", kind: "ashby", slug: "retool" },
   { company: "Replicate", kind: "ashby", slug: "replicate" },
+
+  // RemoteOK — huge aggregator of remote roles across categories. The
+  // "slug" here is a comma-separated list of tags. Use "all" to get every
+  // remote job (warning: thousands). Add more rows with your own tag mixes.
+  { company: "RemoteOK · AI", kind: "remoteok", slug: "ai,ml,llm,ai-engineer" },
+  { company: "RemoteOK · Marketing", kind: "remoteok", slug: "marketing,content,copywriting,seo" },
+  { company: "RemoteOK · Design", kind: "remoteok", slug: "design,ux,ui,product-design" },
+  { company: "RemoteOK · Finance & Crypto", kind: "remoteok", slug: "finance,fintech,crypto,trading" },
+  { company: "RemoteOK · Non-tech", kind: "remoteok", slug: "non-tech,customer-support,operations,community,hr,recruiting" },
 ];
 
 export type NormalizedJob = {
@@ -190,12 +200,63 @@ export async function fetchSmartRecruiters(slug: string): Promise<NormalizedJob[
   return results;
 }
 
+export async function fetchRemoteOK(slug: string): Promise<NormalizedJob[]> {
+  const res = await fetch(`https://remoteok.com/api`, {
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "CareerOps/1.0 (personal job tracker)",
+    },
+  });
+  if (!res.ok) throw new Error(`RemoteOK: ${res.status}`);
+  const data = (await res.json()) as any[];
+
+  // First element is legal metadata, skip. Real jobs have an id.
+  const all = data.filter((j) => j && j.id);
+
+  // Slug is a comma-separated tag list. "all" means no filter.
+  const filter = slug.toLowerCase().trim();
+  const tagList = filter === "all" || !filter
+    ? null
+    : filter.split(",").map((s) => s.trim()).filter(Boolean);
+
+  const filtered = !tagList
+    ? all
+    : all.filter((j: any) => {
+        const jobTags: string[] = Array.isArray(j.tags)
+          ? j.tags.map((t: string) => String(t).toLowerCase())
+          : [];
+        const title = String(j.position ?? j.title ?? "").toLowerCase();
+        const position = String(j.position ?? "").toLowerCase();
+        return tagList.some(
+          (t) =>
+            jobTags.includes(t) ||
+            title.includes(t) ||
+            position.includes(t.replace(/-/g, " ")),
+        );
+      });
+
+  return filtered.map((j: any) => {
+    const tags: string[] = Array.isArray(j.tags) ? j.tags : [];
+    return {
+      externalId: String(j.id),
+      url: j.url || j.apply_url || `https://remoteok.com/remote-jobs/${j.slug ?? j.id}`,
+      title: j.position || j.title || "Role",
+      location: j.location || "Remote",
+      remote: true,
+      description:
+        (j.description || "") +
+        (tags.length ? `\n\nTags: ${tags.join(", ")}` : ""),
+    };
+  });
+}
+
 export async function fetchPortal(kind: string, slug: string): Promise<NormalizedJob[]> {
   if (kind === "greenhouse") return fetchGreenhouse(slug);
   if (kind === "ashby") return fetchAshby(slug);
   if (kind === "lever") return fetchLever(slug);
   if (kind === "workable") return fetchWorkable(slug);
   if (kind === "smartrecruiters") return fetchSmartRecruiters(slug);
+  if (kind === "remoteok") return fetchRemoteOK(slug);
   throw new Error(`Unknown portal kind: ${kind}`);
 }
 
